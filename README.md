@@ -1,5 +1,7 @@
 # fol(ly)
 
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 > **folly** (*noun*)
 > 1. lack of good sense; foolishness.
 > 2. a costly ornamental building with no practical purpose, especially a tower or mock-Gothic ruin built in a large garden or park.
