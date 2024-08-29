@@ -47,6 +47,23 @@ class Term(abc.ABC):
         """Return the set of variable symbols in this term."""
         pass
 
+    @abc.abstractmethod
+    def substitute(self, x: str, t: Term) -> Term:
+        """Return a new Term instance that is this Term, but with term t substituted for variable x
+        (often denoted u[t/x] or u^x_t).
+
+        Args:
+            x: A variable of this Term's language
+            t: A Term of this Term's language
+
+        Returns:
+            A new Term instance obtained by substituting t for x
+
+        Raises:
+            ValueError: If given args are invalid
+        """
+        pass
+
 
 class VariableTerm(Term):
     """A term consisting of a single variable symbol."""
@@ -87,6 +104,15 @@ class VariableTerm(Term):
     @override
     def get_variable_symbols(self) -> set[str]:
         return set([self.variable])
+
+    @override
+    def substitute(self, x: str, t: Term) -> Term:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return t if x == self.variable else VariableTerm(self.language, self.variable)
 
 
 class ConstantTerm(Term):
@@ -129,6 +155,15 @@ class ConstantTerm(Term):
     @override
     def get_variable_symbols(self) -> set[str]:
         return set()
+
+    @override
+    def substitute(self, x: str, t: Term) -> Term:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return ConstantTerm(self.language, self.constant)
 
 
 class FunctionTerm(Term):
@@ -189,6 +224,17 @@ class FunctionTerm(Term):
             *[term.get_variable_symbols() for term in self.arguments]
         )
         return variable_symbols
+
+    @override
+    def substitute(self, x: str, t: Term) -> Term:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return FunctionTerm(
+            self.language, self.f, [term.substitute(x, t) for term in self.arguments]
+        )
 
 
 def string_to_term(language: Language, string: str) -> Term:

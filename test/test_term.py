@@ -49,6 +49,12 @@ class TestVariableTerm(TestTerm):
         t = VariableTerm(self.language1, "v5")
         self.assertEqual(t.get_variable_symbols(), {"v5"})
 
+    def test_substitute(self):
+        t_constant = ConstantTerm(self.language1, "a")
+        t = VariableTerm(self.language1, "v1")
+        self.assertEqual(str(t.substitute("v1", t_constant)), "a")
+        self.assertEqual(str(t.substitute("v5", t_constant)), "v1")
+
 
 class TestConstantTerm(TestTerm):
     def test_init_sunny(self):
@@ -86,6 +92,12 @@ class TestConstantTerm(TestTerm):
     def test_get_variable_symbols(self):
         t = ConstantTerm(self.language1, "c")
         self.assertEqual(t.get_variable_symbols(), set())
+
+    def test_substitute(self):
+        t_variable = VariableTerm(self.language1, "v5")
+        t = ConstantTerm(self.language1, "a")
+
+        self.assertEqual(str(t.substitute("v1", t_variable)), "a")
 
 
 class TestFunctionTerm(TestTerm):
@@ -163,6 +175,14 @@ class TestFunctionTerm(TestTerm):
         t2 = FunctionTerm(self.language1, "f1", [t1])
         self.assertEqual(t1.get_variable_symbols(), {"v1"})
         self.assertEqual(t2.get_variable_symbols(), {"v1"})
+
+    def test_substitute(self):
+        t_constant = ConstantTerm(self.language1, "a")
+        t_variable = VariableTerm(self.language1, "v1")
+        t1 = FunctionTerm(self.language1, "f1", [t_variable])
+        t2 = FunctionTerm(self.language1, "f1", [t1])
+        self.assertEqual(str(t2.substitute("v1", t_constant)), "f1 f1 a")
+        self.assertEqual(str(t2.substitute("v5", t_constant)), "f1 f1 v1")
 
 
 class TestStringToTerm(TestTerm):

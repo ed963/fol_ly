@@ -388,7 +388,9 @@ def string_to_formula(language: Language, string: str) -> Formula:
             return DisjunctionFormula(
                 language,
                 string_to_formula(language, " ".join(symbols[1:disjunction_index])),
-                string_to_formula(language, " ".join(symbols[disjunction_index + 1 : -1])),
+                string_to_formula(
+                    language, " ".join(symbols[disjunction_index + 1 : -1])
+                ),
             )
         except ValueError:
             search_start = disjunction_index

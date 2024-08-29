@@ -145,8 +145,14 @@ class TestNegationFormula(TestFormula):
     @override
     def setUp(self):
         super().setUp()
-        self.language1_relation_formula = RelationFormula(self.language1, "r2", [self.term1, self.term2])
-        self.language2_equality_formula = EqualityFormula(self.language2, ConstantTerm(self.language2, "z"), VariableTerm(self.language2, "v1"))
+        self.language1_relation_formula = RelationFormula(
+            self.language1, "r2", [self.term1, self.term2]
+        )
+        self.language2_equality_formula = EqualityFormula(
+            self.language2,
+            ConstantTerm(self.language2, "z"),
+            VariableTerm(self.language2, "v1"),
+        )
 
     def test_init_sunny(self):
         f = NegationFormula(self.language1, self.language1_relation_formula)
@@ -172,7 +178,9 @@ class TestNegationFormula(TestFormula):
         f1 = NegationFormula(self.language2, rf1)
         rf2 = RelationFormula(self.language2, "r2", [self.term5, self.term5])
         f2 = NegationFormula(self.language2, rf2)
-        rf3 = RelationFormula(self.language2, "r3", [self.term5, self.term5, self.term6])
+        rf3 = RelationFormula(
+            self.language2, "r3", [self.term5, self.term5, self.term6]
+        )
         f3 = NegationFormula(self.language2, rf3)
         self.assertNotEqual(f1, f2)
         self.assertNotEqual(f1, f3)
@@ -212,61 +220,131 @@ class TestDisjunctionFormula(TestFormula):
     @override
     def setUp(self):
         super().setUp()
-        self.language1_relation_formula = RelationFormula(self.language1, "r2", [self.term1, self.term2])
-        self.language1_equality_formula = EqualityFormula(self.language1, ConstantTerm(self.language1, "a"), VariableTerm(self.language1, "v1"))
-        self.language2_equality_formula = EqualityFormula(self.language2, ConstantTerm(self.language2, "z"), ConstantTerm(self.language2, "a"))
+        self.language1_relation_formula = RelationFormula(
+            self.language1, "r2", [self.term1, self.term2]
+        )
+        self.language1_equality_formula = EqualityFormula(
+            self.language1,
+            ConstantTerm(self.language1, "a"),
+            VariableTerm(self.language1, "v1"),
+        )
+        self.language2_equality_formula = EqualityFormula(
+            self.language2,
+            ConstantTerm(self.language2, "z"),
+            ConstantTerm(self.language2, "a"),
+        )
 
     def test_init_sunny(self):
-        f = DisjunctionFormula(self.language1, self.language1_relation_formula, self.language1_equality_formula)
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_equality_formula,
+        )
         self.assertEqual(f.language, self.language1)
         self.assertEqual(f.P, self.language1_relation_formula)
         self.assertEqual(f.Q, self.language1_equality_formula)
 
     def test_init_rainy(self):
         with self.assertRaises(ValueError):
-            DisjunctionFormula(self.language1, self.language1_equality_formula, self.language2_equality_formula)
+            DisjunctionFormula(
+                self.language1,
+                self.language1_equality_formula,
+                self.language2_equality_formula,
+            )
 
     def test_str(self):
-        f = DisjunctionFormula(self.language1, self.language1_relation_formula, self.language1_equality_formula)
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_equality_formula,
+        )
         self.assertEqual(f, string_to_formula(self.language1, str(f)))
 
     def test_eq_true(self):
-        f1 = DisjunctionFormula(self.language1, self.language1_relation_formula, self.language1_equality_formula)
-        f2 = DisjunctionFormula(self.language1, self.language1_relation_formula, self.language1_equality_formula)
+        f1 = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_equality_formula,
+        )
+        f2 = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_equality_formula,
+        )
         self.assertEqual(f1, f1)
         self.assertEqual(f1, f2)
 
     def test_eq_false(self):
-        f1 = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_equality_formula)
-        f2 = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_relation_formula)
-        f3 = DisjunctionFormula(self.language2, self.language2_equality_formula, self.language2_equality_formula)
+        f1 = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_equality_formula,
+        )
+        f2 = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_relation_formula,
+        )
+        f3 = DisjunctionFormula(
+            self.language2,
+            self.language2_equality_formula,
+            self.language2_equality_formula,
+        )
         self.assertNotEqual(f1, f2)
         self.assertNotEqual(f1, f3)
 
     def test_get_free_variables(self):
-        f1 = DisjunctionFormula(self.language2, self.language2_equality_formula, self.language2_equality_formula)
+        f1 = DisjunctionFormula(
+            self.language2,
+            self.language2_equality_formula,
+            self.language2_equality_formula,
+        )
         self.assertEqual(f1.get_free_variables(), set())
 
-        f2 = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_equality_formula)
+        f2 = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_equality_formula,
+        )
         self.assertEqual(f2.get_free_variables(), {"v1"})
 
-        f3 = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_relation_formula)
+        f3 = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_relation_formula,
+        )
         self.assertEqual(f3.get_free_variables(), {"v4", "v1"})
 
     def test_variable_free_in_formula_true(self):
-        f = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_relation_formula)
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_relation_formula,
+        )
         self.assertTrue(f.variable_free_in_formula("v4"))
 
     def test_variable_free_in_formula_false(self):
-        f = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_equality_formula)
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_equality_formula,
+        )
         self.assertFalse(f.variable_free_in_formula("v10"))
 
     def test_is_sentence_true(self):
-        f = DisjunctionFormula(self.language2, self.language2_equality_formula, self.language2_equality_formula)
+        f = DisjunctionFormula(
+            self.language2,
+            self.language2_equality_formula,
+            self.language2_equality_formula,
+        )
         self.assertTrue(f.is_sentence())
 
     def test_is_sentence_false(self):
-        f = DisjunctionFormula(self.language1, self.language1_equality_formula, self.language1_equality_formula)
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_equality_formula,
+            self.language1_equality_formula,
+        )
         self.assertFalse(f.is_sentence())
 
 
@@ -274,9 +352,19 @@ class TestQuantifiedFormula(TestFormula):
     @override
     def setUp(self):
         super().setUp()
-        self.language1_relation_formula = RelationFormula(self.language1, "r2", [self.term1, self.term2])
-        self.language1_equality_formula = EqualityFormula(self.language1, ConstantTerm(self.language1, "a"), VariableTerm(self.language1, "v1"))
-        self.language2_equality_formula = EqualityFormula(self.language2, ConstantTerm(self.language2, "z"), ConstantTerm(self.language2, "a"))
+        self.language1_relation_formula = RelationFormula(
+            self.language1, "r2", [self.term1, self.term2]
+        )
+        self.language1_equality_formula = EqualityFormula(
+            self.language1,
+            ConstantTerm(self.language1, "a"),
+            VariableTerm(self.language1, "v1"),
+        )
+        self.language2_equality_formula = EqualityFormula(
+            self.language2,
+            ConstantTerm(self.language2, "z"),
+            ConstantTerm(self.language2, "a"),
+        )
 
     def test_init_sunny(self):
         f = QuantifiedFormula(self.language1, "v1", self.language1_equality_formula)
