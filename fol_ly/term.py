@@ -179,13 +179,7 @@ class FunctionTerm(Term):
             isinstance(other, FunctionTerm)
             and self.language == other.language
             and self.f == other.f
-            and len(self.arguments) == len(other.arguments)
-            and all(
-                {
-                    self.arguments[i] == other.arguments[i]
-                    for i in range(len(self.arguments))
-                }
-            )
+            and self.arguments == other.arguments
         )
 
     @override
