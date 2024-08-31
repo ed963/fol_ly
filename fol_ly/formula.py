@@ -15,9 +15,9 @@ L such that:
 	1. P is the string "= t1 t2", where t1 and t2 are terms of L, or
 	2. P is the string "R t1 t2 ... tn", where R is an n-ary relation symbol of L 
         and each of the ti is a term of L, or
-	3. P is the string "( !! Q )$, where Q is a formula of L, or
+	3. P is the string "( !! Q )", where Q is a formula of L, or
 	4. P is the string "( Q || R )", where Q and R are formulas of L, or
-	5. P is the string "( AA vi ) ( Q )$, where vi is a variable and Q is a formula of L
+	5. P is the string "( AA vi ) ( Q )", where vi is a variable and Q is a formula of L
 """
 
 
