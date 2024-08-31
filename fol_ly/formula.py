@@ -61,6 +61,40 @@ class Formula(abc.ABC):
         """
         return len(self.get_free_variables()) == 0
 
+    @abc.abstractmethod
+    def substitute(self, x: str, t: Term) -> Formula:
+        """Return a new Formula instance that is this Formula, but with term t
+        substituted for variable x (often denoted P[t/x] or P^x_t).
+
+        Args:
+            x: A variable of this Formula's language
+            t: A Term of this Formula's language
+
+        Returns:
+            A new Formula instance obtained by substituting t for x
+
+        Raises:
+            ValueError: If given args are invalid
+        """
+        pass
+
+    @abc.abstractmethod
+    def is_substitutable(self, x: str, t: Term) -> bool:
+        """Given a variable x and term t, return whether t is substitutable
+        for x in this formula.
+
+        Args:
+            x: A variable of this Formula's language
+            t: A Term of this Formula's language
+
+        Returns:
+            Whether t is substitutable for x in this formula
+
+        Raises:
+            ValueError: If given args are invalid
+        """
+        pass
+
 
 class EqualityFormula(Formula):
     """A formula of the form "= t1 t2", where t1 and t2 are terms."""
@@ -102,6 +136,26 @@ class EqualityFormula(Formula):
     @override
     def get_free_variables(self) -> set[str]:
         return set.union(self.t1.get_variable_symbols(), self.t2.get_variable_symbols())
+
+    @override
+    def substitute(self, x: str, t: Term) -> Formula:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return EqualityFormula(
+            self.language, self.t1.substitute(x, t), self.t2.substitute(x, t)
+        )
+
+    @override
+    def is_substitutable(self, x: str, t: Term) -> bool:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return True
 
 
 class RelationFormula(Formula):
@@ -161,6 +215,26 @@ class RelationFormula(Formula):
     def get_free_variables(self) -> set[str]:
         return set.union(*[term.get_variable_symbols() for term in self.arguments])
 
+    @override
+    def substitute(self, x: str, t: Term) -> Formula:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return RelationFormula(
+            self.language, self.R, [term.substitute(x, t) for term in self.arguments]
+        )
+
+    @override
+    def is_substitutable(self, x: str, t: Term) -> bool:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return True
+
 
 class NegationFormula(Formula):
     """A formula of the form "( !! P )" where P is a formula."""
@@ -198,6 +272,24 @@ class NegationFormula(Formula):
     @override
     def get_free_variables(self) -> set[str]:
         return self.P.get_free_variables()
+
+    @override
+    def substitute(self, x: str, t: Term) -> Formula:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return NegationFormula(self.language, self.P.substitute(x, t))
+
+    @override
+    def is_substitutable(self, x: str, t: Term) -> bool:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return self.P.is_substitutable(x, t)
 
 
 class DisjunctionFormula(Formula):
@@ -244,6 +336,26 @@ class DisjunctionFormula(Formula):
     @override
     def get_free_variables(self) -> set[str]:
         return set.union(self.P.get_free_variables(), self.Q.get_free_variables())
+
+    @override
+    def substitute(self, x: str, t: Term) -> Formula:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return DisjunctionFormula(
+            self.language, self.P.substitute(x, t), self.Q.substitute(x, t)
+        )
+
+    @override
+    def is_substitutable(self, x: str, t: Term) -> bool:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return self.P.is_substitutable(x, t) and self.Q.is_substitutable(x, t)
 
 
 class QuantifiedFormula(Formula):
@@ -296,6 +408,29 @@ class QuantifiedFormula(Formula):
         result = self.P.get_free_variables()
         result.discard(self.v)
         return result
+
+    @override
+    def substitute(self, x: str, t: Term) -> Formula:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        if x == self.v:
+            return QuantifiedFormula(self.language, self.v, self.P)
+        else:
+            return QuantifiedFormula(self.language, self.v, self.P.substitute(x, t))
+
+    @override
+    def is_substitutable(self, x: str, t: Term) -> bool:
+        if not Language.is_variable_symbol(x):
+            raise ValueError(f"Not a variable symbol: {x}")
+        if not t.language == self.language:
+            raise ValueError(f"Given term has a different language: {t}")
+
+        return not self.P.variable_free_in_formula(x) or (
+            self.v not in t.get_variable_symbols() and self.P.is_substitutable(x, t)
+        )
 
 
 def string_to_formula(language: Language, string: str) -> Formula:

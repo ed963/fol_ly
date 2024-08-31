@@ -49,8 +49,8 @@ class Term(abc.ABC):
 
     @abc.abstractmethod
     def substitute(self, x: str, t: Term) -> Term:
-        """Return a new Term instance that is this Term, but with term t substituted for variable x
-        (often denoted u[t/x] or u^x_t).
+        """Return a new Term instance that is this Term, but with term t substituted
+        for variable x (often denoted u[t/x] or u^x_t).
 
         Args:
             x: A variable of this Term's language

@@ -83,6 +83,16 @@ class TestEqualityFormula(TestFormula):
         f = EqualityFormula(self.language1, self.term1, self.term4)
         self.assertFalse(f.is_sentence())
 
+    def test_substitute(self):
+        f = string_to_formula(self.language1, "= f3 f1 v1 a v2 f1 v1")
+        t = ConstantTerm(self.language1, "a")
+        self.assertEqual(str(f.substitute("v1", t)), "= f3 f1 a a v2 f1 a")
+
+    def test_is_substitutable(self):
+        f = string_to_formula(self.language1, "= f3 f1 v1 a v2 f1 v1")
+        t = ConstantTerm(self.language1, "a")
+        self.assertTrue(f.is_substitutable("v1", t))
+
 
 class TestRelationFormula(TestFormula):
     def test_init_sunny(self):
@@ -139,6 +149,16 @@ class TestRelationFormula(TestFormula):
     def test_is_sentence_false(self):
         f = RelationFormula(self.language1, "r2", [self.term1, self.term4])
         self.assertFalse(f.is_sentence())
+
+    def test_substitute(self):
+        f = string_to_formula(self.language1, "r2 f3 f1 v1 a v2 f1 v1")
+        t = ConstantTerm(self.language1, "a")
+        self.assertEqual(str(f.substitute("v1", t)), "r2 f3 f1 a a v2 f1 a")
+
+    def test_is_substitutable(self):
+        f = string_to_formula(self.language1, "r2 f3 f1 v1 a v2 f1 v1")
+        t = ConstantTerm(self.language1, "a")
+        self.assertTrue(f.is_substitutable("v1", t))
 
 
 class TestNegationFormula(TestFormula):
@@ -214,6 +234,21 @@ class TestNegationFormula(TestFormula):
         rf = RelationFormula(self.language1, "r2", [self.term1, self.term4])
         f = NegationFormula(self.language1, rf)
         self.assertFalse(f.is_sentence())
+
+    def test_substitute(self):
+        f = string_to_formula(self.language1, "( !! ( = v1 a || r2 f1 v1 c ) )")
+        t = VariableTerm(self.language1, "v5")
+        self.assertEqual(str(f.substitute("v1", t)), "( !! ( = v5 a || r2 f1 v5 c ) )")
+
+    def test_is_substitutable_true(self):
+        f = string_to_formula(self.language1, "( !! ( = v1 a || r2 f1 v1 c ) )")
+        t = VariableTerm(self.language1, "v5")
+        self.assertTrue(f.is_substitutable("v1", t))
+
+    def test_is_substitutable_false(self):
+        f = string_to_formula(self.language1, "( !! ( AA v1 ) ( = v1 v2 ) )")
+        t = FunctionTerm(self.language1, "f1", [VariableTerm(self.language1, "v1")])
+        self.assertFalse(f.is_substitutable("v2", t))
 
 
 class TestDisjunctionFormula(TestFormula):
@@ -347,6 +382,29 @@ class TestDisjunctionFormula(TestFormula):
         )
         self.assertFalse(f.is_sentence())
 
+    def test_substitute(self):
+        f = string_to_formula(
+            self.language1, "( ( AA v1 ) ( = v1 a ) || ( !! r2 f1 v1 c ) )"
+        )
+        t = VariableTerm(self.language1, "v5")
+        self.assertEqual(
+            str(f.substitute("v1", t)), "( ( AA v1 ) ( = v1 a ) || ( !! r2 f1 v5 c ) )"
+        )
+
+    def test_is_substitutable_true(self):
+        f = string_to_formula(
+            self.language1, "( ( AA v1 ) ( = v1 a ) || ( !! r2 f1 v1 c ) )"
+        )
+        t = VariableTerm(self.language1, "v5")
+        self.assertTrue(f.is_substitutable("v1", t))
+
+    def test_is_substitutable_false(self):
+        f = string_to_formula(
+            self.language1, "( ( AA v1 ) ( = v1 v2 ) || ( !! r2 f1 v2 c ) )"
+        )
+        t = FunctionTerm(self.language1, "f1", [VariableTerm(self.language1, "v1")])
+        self.assertFalse(f.is_substitutable("v2", t))
+
 
 class TestQuantifiedFormula(TestFormula):
     @override
@@ -424,6 +482,37 @@ class TestQuantifiedFormula(TestFormula):
     def test_is_sentence_false(self):
         f = QuantifiedFormula(self.language1, "v10", self.language1_equality_formula)
         self.assertFalse(f.is_sentence())
+
+    def test_substitute(self):
+        f = string_to_formula(
+            self.language1, "( AA v1 ) ( ( = v1 a || ( !! r2 f1 v1 v2 ) ) )"
+        )
+        t = VariableTerm(self.language1, "v5")
+        self.assertEqual(
+            str(f.substitute("v1", t)), "( AA v1 ) ( ( = v1 a || ( !! r2 f1 v1 v2 ) ) )"
+        )
+        self.assertEqual(
+            str(f.substitute("v2", t)), "( AA v1 ) ( ( = v1 a || ( !! r2 f1 v1 v5 ) ) )"
+        )
+
+    def test_is_substitutable_true(self):
+        f1 = string_to_formula(
+            self.language1, "( AA v1 ) ( ( = v1 a || ( !! r2 f1 v1 v2 ) ) )"
+        )
+        f2 = string_to_formula(
+            self.language1, "( AA v1 ) ( ( = v1 a || ( !! r2 f1 v1 v2 ) ) )"
+        )
+        t = VariableTerm(self.language1, "v5")
+        self.assertTrue(f1.is_substitutable("v1", t))
+        self.assertTrue(f2.is_substitutable("v2", t))
+
+    def test_is_substitutable_false(self):
+        f = string_to_formula(
+            self.language1,
+            "( AA v2 ) ( ( AA v1 ) ( ( = v1 a || ( !! r2 f1 v2 v3 ) ) ) )",
+        )
+        t = FunctionTerm(self.language1, "f1", [VariableTerm(self.language1, "v1")])
+        self.assertFalse(f.is_substitutable("v3", t))
 
 
 class TestStringToTerm(TestFormula):
