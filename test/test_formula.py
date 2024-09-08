@@ -538,6 +538,39 @@ class TestStringToTerm(TestFormula):
         with self.assertRaises(ValueError):
             string_to_formula(self.language1, "r2 f3 a v1 f1 c")
 
+    def test_string_to_formula_sunny_existential(self):
+        self.assertEqual(
+            str(string_to_formula(self.language1, "( EE v1 ) ( = v1 a )")),
+            "( !! ( AA v1 ) ( ( !! = v1 a ) ) )",
+        )
+
+    def test_string_to_formula_sunny_conjunction(self):
+        self.assertEqual(
+            str(
+                string_to_formula(
+                    self.language1, "( = a v1 && ( = b v2 || = v3 f3 a b c ) )"
+                )
+            ),
+            "( !! ( ( !! = a v1 ) || ( !! ( = b v2 || = v3 f3 a b c ) ) ) )",
+        )
+
+    def test_string_to_formula_sunny_implication(self):
+        self.assertEqual(
+            str(
+                string_to_formula(
+                    self.language1,
+                    "( ( AA v1 ) ( = v1 a ) -> ( = f1 a b || r2 a v2 ) )",
+                )
+            ),
+            "( ( !! ( AA v1 ) ( = v1 a ) ) || ( = f1 a b || r2 a v2 ) )",
+        )
+
+    def test_string_to_formula_sunny_equivalence(self):
+        self.assertEqual(
+            str(string_to_formula(self.language1, "( = a b <-> r2 b c )")),
+            "( !! ( ( !! ( ( !! = a b ) || r2 b c ) ) || ( !! ( ( !! r2 b c ) || = a b ) ) ) )",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

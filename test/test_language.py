@@ -36,6 +36,9 @@ class TestLanguage(unittest.TestCase):
         with self.assertRaises(ValueError):
             Language(set(), {}, {2: {"r 2"}})
 
+        with self.assertRaises(ValueError):
+            Language({"->"}, {}, {})
+
     def test_init_rainy_repeat_symbol(self):
         with self.assertRaises(ValueError):
             Language({"a"}, {1: {"a"}}, {})

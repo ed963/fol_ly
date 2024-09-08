@@ -31,6 +31,13 @@ The symbols of a language can be divided into "logical symbols" and
 COMMON_SYMBOLS = {"(", ")", "||", "!!", "AA", "="}
 # We also use "v1, v2, ..." to represent the variable symbols of all languages
 VAR_SYMBOL_RE = r"^v[1-9]\d*$"
+# We also define additional logical symbols for shorthand when constructing formulas.
+#   To limit our chatacter set to ASCII, we use:
+#       "&&" to represent the conjunction symbol (U+2227)
+#       "->" to represent the right arrow (U+2192)
+#       "<->" to represent the left-right arrow (U+2194)
+#       "EE" to represent the existential quantification symbol (U+2203)
+SHORTHAND_SYMBOLS = {"&&", "->", "<->", "EE"}
 
 
 def is_disjoint_sets(*sets: set) -> bool:
@@ -151,6 +158,7 @@ class Language:
             and symbol not in COMMON_SYMBOLS
             and re.search(r"\s", symbol) is None
             and not Language.is_variable_symbol(symbol)
+            and symbol not in SHORTHAND_SYMBOLS
         )
 
     def is_common_symbol(symbol: str) -> bool:

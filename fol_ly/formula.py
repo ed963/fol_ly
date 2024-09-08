@@ -18,6 +18,12 @@ L such that:
 	3. P is the string "( !! Q )", where Q is a formula of L, or
 	4. P is the string "( Q || R )", where Q and R are formulas of L, or
 	5. P is the string "( AA vi ) ( Q )", where vi is a variable and Q is a formula of L
+
+Additionally, define the following shorthands:
+    1. "( Q && R )" will mean "( !! ( ( !! Q ) || ( !! R ) ) )"
+    2. "( Q -> R )" will mean "( ( !! Q ) || R )"
+    3. "( Q <-> R )" will mean "( ( Q -> R ) && ( R -> Q ) )"
+    4. "( EE vi ) ( Q )" will mean "( !! ( AA vi ) ( !! Q ) )"
 """
 
 
@@ -433,6 +439,69 @@ class QuantifiedFormula(Formula):
         )
 
 
+def get_top_level_logical_connective(symbols: list[str]) -> int:
+    """Given a list of symbols representing a formula of the form "( P C Q )" where
+    P and Q are formulas and C is one of ||, &&, ->, <->, return the index of C.
+
+    Raises:
+        ValueError: If the given symbols cannot be parsed as a formula "( P C Q )".
+    """
+    binary_logical_connectives = {"||", "&&", "->", "<->"}
+
+    # Number of "(" seen minus number of ")" seen
+    difference = 0
+    for i in range(len(symbols)):
+        if symbols[i] == "(":
+            difference += 1
+        elif symbols[i] == ")":
+            difference -= 1
+        elif symbols[i] in binary_logical_connectives and difference == 1:
+            break
+
+    if 1 < i < len(symbols) - 2:
+        return i
+    raise ValueError(f'Symbols cannot be parsed as a formula "( P C Q )": {symbols}')
+
+
+def create_conjunction_formula(P: Formula, Q: Formula) -> Formula:
+    """Given two formulas, P and Q, return a Formula instance that represents their
+    conjunction "( P && Q )".
+
+    Raises:
+        ValueError: If the given formulas are invalid.
+    """
+    language = P.language
+    return NegationFormula(
+        language,
+        DisjunctionFormula(
+            language, NegationFormula(language, P), NegationFormula(language, Q)
+        ),
+    )
+
+
+def create_implication_formula(P: Formula, Q: Formula) -> Formula:
+    """Given two formulas, P and Q, return a Formula instance that represents the
+    implication formula "( P -> Q )".
+
+    Raises:
+        ValueError: If the given formulas are invalid.
+    """
+    language = P.language
+    return DisjunctionFormula(language, NegationFormula(language, P), Q)
+
+
+def create_equivalence_formula(P: Formula, Q: Formula) -> Formula:
+    """Given two formulas, P and Q, return a Formula instance that represents the
+    equivalence formula "( P <-> Q )".
+
+    Raises:
+        ValueError: If the given formulas are invalid.
+    """
+    return create_conjunction_formula(
+        create_implication_formula(P, Q), create_implication_formula(Q, P)
+    )
+
+
 def string_to_formula(language: Language, string: str) -> Formula:
     """Given the string representation of a formula in the specified language,
     return a Formula instance corresponding to the formula.
@@ -512,20 +581,45 @@ def string_to_formula(language: Language, string: str) -> Formula:
             language, symbols[2], string_to_formula(language, " ".join(symbols[5:-1]))
         )
 
-    search_start = 1
-    while True:
-        try:
-            disjunction_index = symbols.index("||", search_start)
-        except ValueError:
-            raise ValueError("Cannot parse string into a formula.")
-
-        try:
-            return DisjunctionFormula(
+    if (
+        len(symbols) >= 6
+        and symbols[1] == "EE"
+        and Language.is_variable_symbol(symbols[2])
+        and symbols[3] == ")"
+        and symbols[4] == "("
+    ):
+        return NegationFormula(
+            language,
+            QuantifiedFormula(
                 language,
-                string_to_formula(language, " ".join(symbols[1:disjunction_index])),
-                string_to_formula(
-                    language, " ".join(symbols[disjunction_index + 1 : -1])
+                symbols[2],
+                NegationFormula(
+                    language, string_to_formula(language, " ".join(symbols[5:-1]))
                 ),
-            )
-        except ValueError:
-            search_start = disjunction_index
+            ),
+        )
+
+    connective_index = get_top_level_logical_connective(symbols)
+    connective = symbols[connective_index]
+
+    if connective == "||":
+        return DisjunctionFormula(
+            language,
+            string_to_formula(language, " ".join(symbols[1:connective_index])),
+            string_to_formula(language, " ".join(symbols[connective_index + 1 : -1])),
+        )
+    elif connective == "&&":
+        return create_conjunction_formula(
+            string_to_formula(language, " ".join(symbols[1:connective_index])),
+            string_to_formula(language, " ".join(symbols[connective_index + 1 : -1])),
+        )
+    elif connective == "->":
+        return create_implication_formula(
+            string_to_formula(language, " ".join(symbols[1:connective_index])),
+            string_to_formula(language, " ".join(symbols[connective_index + 1 : -1])),
+        )
+    elif connective == "<->":
+        return create_equivalence_formula(
+            string_to_formula(language, " ".join(symbols[1:connective_index])),
+            string_to_formula(language, " ".join(symbols[connective_index + 1 : -1])),
+        )
