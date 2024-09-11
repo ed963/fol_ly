@@ -463,6 +463,18 @@ def get_top_level_logical_connective(symbols: list[str]) -> int:
     raise ValueError(f'Symbols cannot be parsed as a formula "( P C Q )": {symbols}')
 
 
+def create_existential_formula(P: Formula, v: str) -> Formula:
+    """Given a formula P and variable v, return a Formula instance that represents
+    the existential quantification formula "( EE v ) ( P )".
+
+    Raises:
+        ValueError: If the given arguments are invalid.
+    """
+    return NegationFormula(
+        P.language, QuantifiedFormula(P.language, v, NegationFormula(P.language, P))
+    )
+
+
 def create_conjunction_formula(P: Formula, Q: Formula) -> Formula:
     """Given two formulas, P and Q, return a Formula instance that represents their
     conjunction "( P && Q )".
@@ -588,15 +600,8 @@ def string_to_formula(language: Language, string: str) -> Formula:
         and symbols[3] == ")"
         and symbols[4] == "("
     ):
-        return NegationFormula(
-            language,
-            QuantifiedFormula(
-                language,
-                symbols[2],
-                NegationFormula(
-                    language, string_to_formula(language, " ".join(symbols[5:-1]))
-                ),
-            ),
+        return create_existential_formula(
+            string_to_formula(language, " ".join(symbols[5:-1])), symbols[2]
         )
 
     connective_index = get_top_level_logical_connective(symbols)
