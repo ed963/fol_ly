@@ -64,6 +64,19 @@ class Term(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def find_substituted_term(self, t: Term, x: str) -> Term | None:
+        """If there is some unique term s such that: t is this term with s substituted
+        for x, then return s.
+
+        Otherwise, if all terms s satisfy the above, return None.
+
+        Raises:
+            ValueError: If there is no term s such that t is this term with s
+                substituted for x.
+        """
+        pass
+
 
 class VariableTerm(Term):
     """A term consisting of a single variable symbol."""
@@ -113,6 +126,16 @@ class VariableTerm(Term):
             raise ValueError(f"Given term has a different language: {t}")
 
         return t if x == self.variable else VariableTerm(self.language, self.variable)
+
+    @override
+    def find_substituted_term(self, t: Term, x: str) -> Term | None:
+        if self.language != t.language:
+            raise ValueError("t must be a term of the same language.")
+        if self.variable == x:
+            return t
+        if self == t:
+            return None
+        raise ValueError("The given substitution cannot be satisfied by any term.")
 
 
 class ConstantTerm(Term):
@@ -164,6 +187,14 @@ class ConstantTerm(Term):
             raise ValueError(f"Given term has a different language: {t}")
 
         return ConstantTerm(self.language, self.constant)
+
+    @override
+    def find_substituted_term(self, t: Term, x: str) -> Term | None:
+        if self.language != t.language:
+            raise ValueError("t must be a term of the same language.")
+        if self == t:
+            return None
+        raise ValueError("The given substitution cannot be satisfied by any term.")
 
 
 class FunctionTerm(Term):
@@ -229,12 +260,30 @@ class FunctionTerm(Term):
     def substitute(self, x: str, t: Term) -> Term:
         if not Language.is_variable_symbol(x):
             raise ValueError(f"Not a variable symbol: {x}")
-        if not t.language == self.language:
-            raise ValueError(f"Given term has a different language: {t}")
+        if t.language != self.language:
+            raise ValueError(f"t must be a term of the same language.")
 
         return FunctionTerm(
             self.language, self.f, [term.substitute(x, t) for term in self.arguments]
         )
+
+    @override
+    def find_substituted_term(self, t: Term, x: str) -> Term | None:
+        if self.language != t.language:
+            raise ValueError("t must be a term of the same language.")
+        if not isinstance(t, FunctionTerm) or self.f != t.f:
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        candidates = [
+            self.arguments[i].find_substituted_term(t.arguments[i], x)
+            for i in range(len(self.arguments))
+        ]
+        if all({c is None for c in candidates}):
+            return None
+        term_candidates = [c for c in candidates if c is not None]
+        if len(term_candidates) == 1:
+            return term_candidates.pop()
+        else:
+            raise ValueError("The given substitution cannot be satisfied by any term.")
 
 
 def string_to_term(language: Language, string: str) -> Term:
@@ -247,7 +296,7 @@ def string_to_term(language: Language, string: str) -> Term:
             symbols representing a term in the given language.
 
     Returns:
-        A Term instance corresponding to the given term.
+        A Term instance corresponding to the given string.
 
     Raises:
         ValueError: If the given string cannot be parsed into a term.

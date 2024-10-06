@@ -101,6 +101,19 @@ class Formula(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def find_substituted_term(self, f: Formula, x: str) -> Term | None:
+        """If there is some unique term s such that: f is this formula with s substituted
+        for x, then return s.
+
+        Otherwise, if all terms s satisfy the above, return None.
+
+        Raises:
+            ValueError: If there is no term s such that f is this formula with s
+                substituted for x.
+        """
+        pass
+
 
 class EqualityFormula(Formula):
     """A formula of the form "= t1 t2", where t1 and t2 are terms."""
@@ -162,6 +175,23 @@ class EqualityFormula(Formula):
             raise ValueError(f"Given term has a different language: {t}")
 
         return True
+
+    @override
+    def find_substituted_term(self, f: Formula, x: str) -> Term | None:
+        if f.language != self.language:
+            raise ValueError(f"f must be a formula of the same language.")
+        if not isinstance(f, EqualityFormula):
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        candidate_one = self.t1.find_substituted_term(f.t1, x)
+        candidate_two = self.t2.find_substituted_term(f.t2, x)
+        if candidate_one is None:
+            return candidate_two
+        if candidate_two is None:
+            return candidate_one
+        if candidate_one == candidate_two:
+            return candidate_one
+        else:
+            raise ValueError("The given substitution cannot be satisfied by any term.")
 
 
 class RelationFormula(Formula):
@@ -241,6 +271,24 @@ class RelationFormula(Formula):
 
         return True
 
+    @override
+    def find_substituted_term(self, f: Formula, x: str) -> Term | None:
+        if self.language != f.language:
+            raise ValueError("f must be a formula of the same language.")
+        if not isinstance(f, RelationFormula) or self.R != f.R:
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        candidates = [
+            self.arguments[i].find_substituted_term(f.arguments[i], x)
+            for i in range(len(self.arguments))
+        ]
+        if all({c is None for c in candidates}):
+            return None
+        term_candidates = [c for c in candidates if c is not None]
+        if len(term_candidates) == 1:
+            return term_candidates.pop()
+        else:
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+
 
 class NegationFormula(Formula):
     """A formula of the form "( !! P )" where P is a formula."""
@@ -296,6 +344,14 @@ class NegationFormula(Formula):
             raise ValueError(f"Given term has a different language: {t}")
 
         return self.P.is_substitutable(x, t)
+
+    @override
+    def find_substituted_term(self, f: Formula, x: str) -> Term | None:
+        if self.language != f.language:
+            raise ValueError("f must be a formula of the same language.")
+        if not isinstance(f, NegationFormula):
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        return self.P.find_substituted_term(f.P, x)
 
 
 class DisjunctionFormula(Formula):
@@ -362,6 +418,23 @@ class DisjunctionFormula(Formula):
             raise ValueError(f"Given term has a different language: {t}")
 
         return self.P.is_substitutable(x, t) and self.Q.is_substitutable(x, t)
+
+    @override
+    def find_substituted_term(self, f: Formula, x: str) -> Term | None:
+        if f.language != self.language:
+            raise ValueError(f"f must be a formula of the same language.")
+        if not isinstance(f, DisjunctionFormula):
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        candidate_one = self.P.find_substituted_term(f.P, x)
+        candidate_two = self.Q.find_substituted_term(f.Q, x)
+        if candidate_one is None:
+            return candidate_two
+        if candidate_two is None:
+            return candidate_one
+        if candidate_one == candidate_two:
+            return candidate_one
+        else:
+            raise ValueError("The given substitution cannot be satisfied by any term.")
 
 
 class QuantifiedFormula(Formula):
@@ -437,6 +510,18 @@ class QuantifiedFormula(Formula):
         return not self.P.variable_free_in_formula(x) or (
             self.v not in t.get_variable_symbols() and self.P.is_substitutable(x, t)
         )
+
+    @override
+    def find_substituted_term(self, f: Formula, x: str) -> Term | None:
+        if f.language != self.language:
+            raise ValueError(f"f must be a formula of the same language.")
+        if not isinstance(f, QuantifiedFormula):
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        if self.v == x:
+            if self == f:
+                return None
+            raise ValueError("The given substitution cannot be satisfied by any term.")
+        return self.P.find_substituted_term(f.P, x)
 
 
 def get_top_level_logical_connective(symbols: list[str]) -> int:
@@ -524,7 +609,7 @@ def string_to_formula(language: Language, string: str) -> Formula:
             representing a formula in the given language.
 
     Returns:
-        A Formula instance corresponding to the given term.
+        A Formula instance corresponding to the given string.
 
     Raises:
         ValueError: If the given string cannot be parsed into a formula.
