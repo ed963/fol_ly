@@ -55,6 +55,22 @@ class TestVariableTerm(TestTerm):
         self.assertEqual(str(t.substitute("v1", t_constant)), "a")
         self.assertEqual(str(t.substitute("v5", t_constant)), "v1")
 
+    def test_find_substituted_term_unique(self):
+        t = VariableTerm(self.language1, "v1")
+        t_constant = ConstantTerm(self.language1, "a")
+        self.assertEqual(t.find_substituted_term(t, "v1"), t)
+        self.assertEqual(t.find_substituted_term(t_constant, "v1"), t_constant)
+
+    def test_find_substituted_term_none(self):
+        t = VariableTerm(self.language1, "v1")
+        self.assertIsNone(t.find_substituted_term(t, "v4"))
+
+    def test_find_substituted_term_value_error(self):
+        t = VariableTerm(self.language1, "v1")
+        t_constant = ConstantTerm(self.language1, "a")
+        with self.assertRaises(ValueError):
+            t.find_substituted_term(t_constant, "v4")
+
 
 class TestConstantTerm(TestTerm):
     def test_init_sunny(self):
@@ -98,6 +114,16 @@ class TestConstantTerm(TestTerm):
         t = ConstantTerm(self.language1, "a")
 
         self.assertEqual(str(t.substitute("v1", t_variable)), "a")
+
+    def test_find_substituted_term_none(self):
+        t = ConstantTerm(self.language1, "a")
+        self.assertIsNone(t.find_substituted_term(t, "v4"))
+
+    def test_find_substituted_term_value_error(self):
+        t_variable = VariableTerm(self.language1, "v1")
+        t = ConstantTerm(self.language1, "a")
+        with self.assertRaises(ValueError):
+            t.find_substituted_term(t_variable, "v4")
 
 
 class TestFunctionTerm(TestTerm):
@@ -183,6 +209,30 @@ class TestFunctionTerm(TestTerm):
         t2 = FunctionTerm(self.language1, "f1", [t1])
         self.assertEqual(str(t2.substitute("v1", t_constant)), "f1 f1 a")
         self.assertEqual(str(t2.substitute("v5", t_constant)), "f1 f1 v1")
+
+    def test_find_substituted_term_unique(self):
+        t_variable = VariableTerm(self.language1, "v1")
+        t_constant = ConstantTerm(self.language1, "a")
+        t1 = FunctionTerm(self.language1, "f3", [t_variable, t_constant, t_variable])
+        t2 = FunctionTerm(self.language1, "f3", [t_constant, t_constant, t_constant])
+        self.assertEqual(t1.find_substituted_term(t2, "v1"), t_constant)
+        self.assertEqual(t1.find_substituted_term(t1, "v1"), t_variable)
+
+    def test_find_substituted_term_none(self):
+        t_variable = VariableTerm(self.language1, "v1")
+        t_constant = ConstantTerm(self.language1, "a")
+        t = FunctionTerm(self.language1, "f3", [t_variable, t_constant, t_variable])
+        self.assertIsNone(t.find_substituted_term(t, "v4"))
+
+    def test_find_substituted_term_value_error(self):
+        t_variable = VariableTerm(self.language1, "v1")
+        t_constant = ConstantTerm(self.language1, "a")
+        t1 = FunctionTerm(self.language1, "f3", [t_variable, t_constant, t_variable])
+        t2 = FunctionTerm(self.language1, "f3", [t_constant, t_constant, t_variable])
+        with self.assertRaises(ValueError):
+            t2.find_substituted_term(t1, "v4")
+        with self.assertRaises(ValueError):
+            t2.find_substituted_term(t1, "v1")
 
 
 class TestStringToTerm(TestTerm):
