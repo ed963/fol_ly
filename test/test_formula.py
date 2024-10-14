@@ -93,6 +93,30 @@ class TestEqualityFormula(TestFormula):
         t = ConstantTerm(self.language1, "a")
         self.assertTrue(f.is_substitutable("v1", t))
 
+    def test_find_substituted_term_unique(self):
+        f = EqualityFormula(self.language1, self.term1, self.term2)
+        self.assertEqual(
+            f.find_substituted_term(
+                EqualityFormula(self.language1, self.term1, self.term1), "v4"
+            ),
+            self.term1,
+        )
+
+    def test_find_substituted_term_none(self):
+        f = EqualityFormula(self.language1, self.term1, self.term2)
+        self.assertIsNone(f.find_substituted_term(f, "v1"))
+
+    def test_find_substituted_term_value_error(self):
+        f = EqualityFormula(self.language1, self.term1, self.term2)
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(
+                EqualityFormula(self.language1, self.term2, self.term2), "v4"
+            )
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(
+                EqualityFormula(self.language1, self.term1, self.term1), "v1"
+            )
+
 
 class TestRelationFormula(TestFormula):
     def test_init_sunny(self):
@@ -159,6 +183,24 @@ class TestRelationFormula(TestFormula):
         f = string_to_formula(self.language1, "r2 f3 f1 v1 a v2 f1 v1")
         t = ConstantTerm(self.language1, "a")
         self.assertTrue(f.is_substitutable("v1", t))
+
+    def test_find_substituted_term_unique(self):
+        f = RelationFormula(self.language1, "r2", [self.term2, self.term2])
+        self.assertEqual(
+            f.find_substituted_term(string_to_formula(self.language1, "r2 a a"), "v4"),
+            self.term1,
+        )
+
+    def test_find_substituted_term_none(self):
+        f = RelationFormula(self.language1, "r2", [self.term2, self.term2])
+        self.assertIsNone(f.find_substituted_term(f, "v1"))
+
+    def test_find_substituted_term_value_error(self):
+        f = RelationFormula(self.language1, "r2", [self.term2, self.term2])
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(string_to_formula(self.language1, "r2 a b"), "v4")
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(string_to_formula(self.language1, "r2 a a"), "v1")
 
 
 class TestNegationFormula(TestFormula):
@@ -249,6 +291,48 @@ class TestNegationFormula(TestFormula):
         f = string_to_formula(self.language1, "( !! ( AA v1 ) ( = v1 v2 ) )")
         t = FunctionTerm(self.language1, "f1", [VariableTerm(self.language1, "v1")])
         self.assertFalse(f.is_substitutable("v2", t))
+
+    def test_find_substituted_term_unique(self):
+        f = NegationFormula(
+            self.language1, EqualityFormula(self.language1, self.term1, self.term2)
+        )
+        self.assertEqual(
+            f.find_substituted_term(
+                NegationFormula(
+                    self.language1,
+                    EqualityFormula(self.language1, self.term1, self.term1),
+                ),
+                "v4",
+            ),
+            self.term1,
+        )
+
+    def test_find_substituted_term_none(self):
+        f = NegationFormula(
+            self.language1, EqualityFormula(self.language1, self.term1, self.term2)
+        )
+        self.assertIsNone(f.find_substituted_term(f, "v1"))
+
+    def test_find_substituted_term_value_error(self):
+        f = NegationFormula(
+            self.language1, EqualityFormula(self.language1, self.term1, self.term2)
+        )
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(
+                NegationFormula(
+                    self.language1,
+                    EqualityFormula(self.language1, self.term2, self.term2),
+                ),
+                "v4",
+            )
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(
+                NegationFormula(
+                    self.language1,
+                    EqualityFormula(self.language1, self.term1, self.term1),
+                ),
+                "v1",
+            )
 
 
 class TestDisjunctionFormula(TestFormula):
@@ -405,6 +489,45 @@ class TestDisjunctionFormula(TestFormula):
         t = FunctionTerm(self.language1, "f1", [VariableTerm(self.language1, "v1")])
         self.assertFalse(f.is_substitutable("v2", t))
 
+    def test_find_substituted_term_unique(self):
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_equality_formula,
+        )
+        self.assertEqual(
+            f.find_substituted_term(f.substitute("v1", self.term4), "v1"), self.term4
+        )
+
+    def test_find_substituted_term_none(self):
+        f = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_equality_formula,
+        )
+        self.assertIsNone(f.find_substituted_term(f, "v10"))
+
+    def test_find_substituted_term_value_error(self):
+        f1 = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula,
+            self.language1_relation_formula,
+        )
+        f2 = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula.substitute("v4", self.term1),
+            self.language1_relation_formula.substitute("v4", self.term2),
+        )
+        f3 = DisjunctionFormula(
+            self.language1,
+            self.language1_relation_formula.substitute("v4", self.term1),
+            self.language1_relation_formula.substitute("v4", self.term1),
+        )
+        with self.assertRaises(ValueError):
+            f1.find_substituted_term(f2, "v4")
+        with self.assertRaises(ValueError):
+            f1.find_substituted_term(f3, "v1")
+
 
 class TestQuantifiedFormula(TestFormula):
     @override
@@ -513,6 +636,30 @@ class TestQuantifiedFormula(TestFormula):
         )
         t = FunctionTerm(self.language1, "f1", [VariableTerm(self.language1, "v1")])
         self.assertFalse(f.is_substitutable("v3", t))
+
+    def test_find_substituted_term_unique(self):
+        f = QuantifiedFormula(self.language1, "v10", self.language1_equality_formula)
+        self.assertEqual(
+            f.find_substituted_term(f.substitute("v1", self.term1), "v1"), self.term1
+        )
+
+    def test_find_substituted_term_none(self):
+        f = QuantifiedFormula(self.language1, "v1", self.language1_equality_formula)
+        self.assertIsNone(f.find_substituted_term(f, "v1"))
+        self.assertIsNone(f.find_substituted_term(f, "v4"))
+
+    def test_find_substituted_term_value_error(self):
+        f = QuantifiedFormula(self.language1, "v1", self.language1_equality_formula)
+        f1 = QuantifiedFormula(self.language1, "v4", self.language1_equality_formula)
+        f2 = QuantifiedFormula(
+            self.language1,
+            "v1",
+            self.language1_equality_formula.substitute("v1", self.term1),
+        )
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(f1, "v1")
+        with self.assertRaises(ValueError):
+            f.find_substituted_term(f2, "v1")
 
 
 class TestStringToTerm(TestFormula):

@@ -277,10 +277,12 @@ class FunctionTerm(Term):
             self.arguments[i].find_substituted_term(t.arguments[i], x)
             for i in range(len(self.arguments))
         ]
-        if all({c is None for c in candidates}):
+        if all(c is None for c in candidates):
             return None
         term_candidates = [c for c in candidates if c is not None]
-        if len(term_candidates) == 1:
+        if len(term_candidates) > 0 and all(
+            c == term_candidates[0] for c in term_candidates
+        ):
             return term_candidates.pop()
         else:
             raise ValueError("The given substitution cannot be satisfied by any term.")
