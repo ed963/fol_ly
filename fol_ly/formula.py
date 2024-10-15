@@ -6,6 +6,7 @@ from typing import override
 
 from fol_ly.language import Language
 from fol_ly.term import Term, string_to_term
+from pysat import formula
 
 
 """This module provides an implementation of formulas in a first order language.
@@ -35,6 +36,7 @@ class Formula(abc.ABC):
     def __init__(self, language: Language):
         """Initialize this formula of the given language."""
         self.language = language
+        self.__class__.__hash__ = Formula.__hash__
 
     @abc.abstractmethod
     def __repr__(self):
@@ -50,6 +52,9 @@ class Formula(abc.ABC):
     @abc.abstractmethod
     def __eq__(self, other: Formula):
         pass
+
+    def __hash__(self):
+        return hash(str(self))
 
     @abc.abstractmethod
     def get_free_variables(self) -> set[str]:
@@ -111,6 +116,24 @@ class Formula(abc.ABC):
         Raises:
             ValueError: If there is no term s such that f is this formula with s
                 substituted for x.
+        """
+        pass
+
+    @abc.abstractmethod
+    def convert_to_propositional_formula(self) -> formula.Formula:
+        """Convert this formula to a formula of propositional logic as follows:
+
+        1. Find all subformulas of the form "( AA vi ) ( p )" - where vi is a
+        variable and p is a formula - that are not in the scope of another quantifier.
+        Replace them with propositional variables in a systemic fashion.
+            - i.e., If "( AA v1 ) ( = v1 v1 )" appears twice, it is replaced by the
+            same variable both times, and distinct subformulas are replaced with
+            distinct variables.
+        2. Find all atomic formulas that remain, and replace them systematically with
+        new propositional variables.
+
+        Returns:
+            A clausified formula.Formula instance obtained through the above method.
         """
         pass
 
@@ -192,6 +215,12 @@ class EqualityFormula(Formula):
             return candidate_one
         else:
             raise ValueError("The given substitution cannot be satisfied by any term.")
+
+    @override
+    def convert_to_propositional_formula(self) -> formula.Formula:
+        result = formula.Atom(str(self))
+        result.clausify()
+        return result
 
 
 class RelationFormula(Formula):
@@ -291,6 +320,12 @@ class RelationFormula(Formula):
         else:
             raise ValueError("The given substitution cannot be satisfied by any term.")
 
+    @override
+    def convert_to_propositional_formula(self) -> formula.Formula:
+        result = formula.Atom(str(self))
+        result.clausify()
+        return result
+
 
 class NegationFormula(Formula):
     """A formula of the form "( !! P )" where P is a formula."""
@@ -354,6 +389,10 @@ class NegationFormula(Formula):
         if not isinstance(f, NegationFormula):
             raise ValueError("The given substitution cannot be satisfied by any term.")
         return self.P.find_substituted_term(f.P, x)
+
+    @override
+    def convert_to_propositional_formula(self) -> formula.Formula:
+        return formula.Neg(self.P.convert_to_propositional_formula())
 
 
 class DisjunctionFormula(Formula):
@@ -437,6 +476,13 @@ class DisjunctionFormula(Formula):
             return candidate_one
         else:
             raise ValueError("The given substitution cannot be satisfied by any term.")
+
+    @override
+    def convert_to_propositional_formula(self) -> formula.Formula:
+        return formula.Or(
+            self.P.convert_to_propositional_formula(),
+            self.Q.convert_to_propositional_formula(),
+        )
 
 
 class QuantifiedFormula(Formula):
@@ -524,6 +570,12 @@ class QuantifiedFormula(Formula):
                 return None
             raise ValueError("The given substitution cannot be satisfied by any term.")
         return self.P.find_substituted_term(f.P, x)
+
+    @override
+    def convert_to_propositional_formula(self) -> formula.Formula:
+        result = formula.Atom(str(self))
+        result.clausify()
+        return result
 
 
 def get_top_level_logical_connective(symbols: list[str]) -> int:
